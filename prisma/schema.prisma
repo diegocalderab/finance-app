@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Un usuario puede pertenecer a varias cuentas (hoy solo la suya,
+// en el futuro cuentas compartidas con más miembros).
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  passwordHash  String?
+  name          String
+  avatarUrl     String?
+  googleId      String?         @unique
+  appleId       String?         @unique
+  createdAt     DateTime        @default(now())
+  memberships   Membership[]
+  transactions  Transaction[]
+  contributions Contribution[]
+}
+
+// Espacio financiero (hoy 1 por usuario, mañana compartible).
+model Account {
+  id           String        @id @default(uuid())
+  name         String
+  createdAt    DateTime      @default(now())
+  memberships  Membership[]
+  categories   Category[]
+  transactions Transaction[]
+  goals        SavingsGoal[]
+  investments  Investment[]
+}
+
+model Membership {
+  id        String   @id @default(uuid())
+  role      Role     @default(OWNER)
+  joinedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  account   Account  @relation(fields: [accountId], references: [id])
+  accountId String
+
+  @@unique([userId, accountId])
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+model Category {
+  id           String        @id @default(uuid())
+  name         String
+  type         EntryType
+  icon         String
+  color        String
+  account      Account       @relation(fields: [accountId], references: [id])
+  accountId    String
+  transactions Transaction[]
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+}
+
+model Transaction {
+  id         String    @id @default(uuid())
+  type       EntryType
+  amount     Decimal   @db.Decimal(12, 2)
+  date       DateTime
+  note       String?
+  createdAt  DateTime  @default(now())
+  account    Account   @relation(fields: [accountId], references: [id])
+  accountId  String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  categoryId String
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+}
+
+model SavingsGoal {
+  id            String         @id @default(uuid())
+  name          String
+  icon          String
+  color         String
+  targetAmount  Decimal        @db.Decimal(12, 2)
+  createdAt     DateTime       @default(now())
+  account       Account        @relation(fields: [accountId], references: [id])
+  accountId     String
+  contributions Contribution[]
+}
+
+model Contribution {
+  id     String      @id @default(uuid())
+  amount Decimal     @db.Decimal(12, 2)
+  date   DateTime
+  note   String?
+  goal   SavingsGoal @relation(fields: [goalId], references: [id])
+  goalId String
+  user   User        @relation(fields: [userId], references: [id])
+  userId String
+}
+
+model Investment {
+  id           String   @id @default(uuid())
+  name         String
+  ticker       String
+  quantity     Decimal  @db.Decimal(14, 6)
+  avgPrice     Decimal  @db.Decimal(12, 2)
+  currentPrice Decimal  @db.Decimal(12, 2)
+  updatedAt    DateTime @updatedAt
+  account      Account  @relation(fields: [accountId], references: [id])
+  accountId    String
+}
