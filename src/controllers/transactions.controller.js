@@ -96,4 +96,27 @@ async function trend(req, res, next) {
   }
 }
 
-module.exports = { list, create, remove, summary, trend };
+// Saldo disponible para repartir: lo que ha entrado menos lo que ha
+// salido, menos lo que ya está apartado en bolsas o invertido. Evita que
+// el mismo euro se pueda asignar dos veces.
+async function availableBalance(req, res, next) {
+  try {
+    const [transactions, goals, investments] = await Promise.all([
+      prisma.transaction.findMany({ where: { accountId: req.accountId } }),
+      prisma.savingsGoal.findMany({ where: { accountId: req.accountId }, include: { contributions: true } }),
+      prisma.investment.findMany({ where: { accountId: req.accountId } }),
+    ]);
+
+    const income = transactions.filter((t) => t.type === "INCOME").reduce((a, t) => a + Number(t.amount), 0);
+    const expense = transactions.filter((t) => t.type === "EXPENSE").reduce((a, t) => a + Number(t.amount), 0);
+    const allocated = goals.reduce((sum, g) => sum + g.contributions.reduce((a, c) => a + Number(c.amount), 0), 0);
+    const invested = investments.reduce((a, i) => a + Number(i.quantity) * Number(i.avgPrice), 0);
+
+    const available = income - expense - allocated - invested;
+    res.json({ income, expense, allocated, invested, available });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, create, remove, summary, trend, availableBalance };
