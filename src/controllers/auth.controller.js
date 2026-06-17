@@ -24,14 +24,19 @@ async function register(req, res, next) {
     if (existing) return res.status(409).json({ error: "Ese email ya está registrado" });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({ data: { email, passwordHash, name } });
 
-    const account = await prisma.account.create({
-      data: {
-        name: `Cuenta de ${name}`,
-        memberships: { create: { userId: user.id, role: "OWNER" } },
-        categories: { create: DEFAULT_CATEGORIES },
-      },
+    // Todo o nada: si falla la creación de la cuenta, el usuario tampoco
+    // queda creado. Antes podía quedar un usuario huérfano sin cuenta.
+    const { user, account } = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: { email, passwordHash, name } });
+      const account = await tx.account.create({
+        data: {
+          name: `Cuenta de ${name}`,
+          memberships: { create: { userId: user.id, role: "OWNER" } },
+          categories: { create: DEFAULT_CATEGORIES },
+        },
+      });
+      return { user, account };
     });
 
     const token = sign({ sub: user.id });
