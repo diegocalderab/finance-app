@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { api } from "../lib/api";
-import { fmt2, weekday, lastMonths } from "../lib/theme";
+import { fmt2, weekday } from "../lib/theme";
 import { Card, CategoryIcon, Spinner, ErrorNote } from "../components/ui";
 import { AddTransactionSheet } from "../components/sheets";
 import { GREEN, RED, FONT_NUM } from "../lib/theme";
 
 export default function Movements({ theme, categories, refreshKey, onChanged }) {
-  const month = lastMonths(1)[0];
+  const [months, setMonths] = useState([]);
+  const [monthIdx, setMonthIdx] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,15 +17,26 @@ export default function Movements({ theme, categories, refreshKey, onChanged }) 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
+  // Carga los meses que tienen transacciones (solo una vez al montar).
+  useEffect(() => {
+    api.transactionMonths().then((ms) => {
+      setMonths(ms);
+      setMonthIdx(0); // el más reciente primero
+    }).catch(() => {});
+  }, []);
+
+  const selected = months[monthIdx];
+
   const load = () => {
+    if (!selected) return;
     setLoading(true);
-    api.transactions(month.month, month.year)
+    api.transactions(selected.month, selected.year)
       .then(setTransactions)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [refreshKey]);
+  useEffect(load, [selected, refreshKey]);
 
   const filtered = transactions.filter((t) => filter === "all" || filter === t.type || filter === t.categoryId);
   const grouped = useMemo(() => {
@@ -46,7 +58,10 @@ export default function Movements({ theme, categories, refreshKey, onChanged }) 
     try {
       await api.createTransaction(payload);
       setShowSheet(false);
-      load();
+      // Recarga meses por si el nuevo movimiento abre un mes nuevo.
+      const ms = await api.transactionMonths();
+      setMonths(ms);
+      setMonthIdx(0);
       onChanged?.();
     } catch (err) {
       setSaveError(err.message);
@@ -57,8 +72,24 @@ export default function Movements({ theme, categories, refreshKey, onChanged }) 
 
   return (
     <div className="px-5 pt-2 pb-6">
-      <p className="text-sm font-medium mb-3 capitalize" style={{ color: theme.sub }}>{month.label} {month.year}</p>
+      {/* Selector de mes — solo los meses que tienen datos */}
+      <div className="flex gap-2 overflow-x-auto pb-3" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
+        {months.map((m, i) => (
+          <button
+            key={`${m.year}-${m.month}`}
+            onClick={() => { setMonthIdx(i); setFilter("all"); }}
+            className="px-4 py-2 rounded-full text-sm font-semibold flex-shrink-0 capitalize transition-colors"
+            style={{ background: i === monthIdx ? "#0071E3" : theme.surfaceAlt, color: i === monthIdx ? "#FFFFFF" : theme.sub }}
+          >
+            {m.label} {m.year}
+          </button>
+        ))}
+        {months.length === 0 && (
+          <p className="text-sm py-2" style={{ color: theme.sub }}>Sin movimientos todavía</p>
+        )}
+      </div>
 
+      {/* Chips de filtro */}
       <div className="flex gap-2 overflow-x-auto pb-3" onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
         {chips.map((c) => (
           <button key={c.id} onClick={() => setFilter(c.id)} className="px-3.5 py-1.5 rounded-full text-sm font-medium flex-shrink-0" style={{ background: filter === c.id ? "#0071E3" : theme.surfaceAlt, color: filter === c.id ? "#FFFFFF" : theme.sub }}>
@@ -92,7 +123,9 @@ export default function Movements({ theme, categories, refreshKey, onChanged }) 
               </Card>
             </div>
           ))}
-          {grouped.length === 0 && <p className="text-sm text-center py-10" style={{ color: theme.sub }}>Sin movimientos con este filtro</p>}
+          {grouped.length === 0 && months.length > 0 && (
+            <p className="text-sm text-center py-10" style={{ color: theme.sub }}>Sin movimientos con este filtro</p>
+          )}
         </div>
       )}
 

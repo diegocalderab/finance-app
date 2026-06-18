@@ -15,9 +15,14 @@ export default function Dashboard({ theme, categories }) {
   const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [totalBalance, setTotalBalance] = useState(null);
 
   const selected = months[monthIdx];
   const prev = monthIdx > 0 ? months[monthIdx - 1] : null;
+
+  useEffect(() => {
+    api.balance().then(setTotalBalance).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -167,6 +172,41 @@ export default function Dashboard({ theme, categories }) {
                 <p className="text-xs mt-0.5" style={{ color: theme.sub }}>Diferencia de balance</p>
               </div>
               <Delta value={balanceDelta} theme={theme} />
+            </Card>
+          )}
+
+          {totalBalance && (
+            <Card theme={theme}>
+              <p className="text-sm font-semibold mb-3" style={{ color: theme.text }}>Situación global</p>
+              <div className="space-y-2.5">
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: theme.sub }}>Total ingresos</span>
+                  <span style={{ color: GREEN, fontWeight: 600, fontFamily: FONT_NUM }}>{fmt(totalBalance.income)} €</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: theme.sub }}>Total gastos</span>
+                  <span style={{ color: RED, fontWeight: 600, fontFamily: FONT_NUM }}>{fmt(totalBalance.expense)} €</span>
+                </div>
+                {totalBalance.allocated > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: theme.sub }}>En bolsas de ahorro</span>
+                    <span style={{ color: ACCENT, fontWeight: 600, fontFamily: FONT_NUM }}>{fmt(totalBalance.allocated)} €</span>
+                  </div>
+                )}
+                {totalBalance.invested > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: theme.sub }}>Invertido</span>
+                    <span style={{ color: ACCENT, fontWeight: 600, fontFamily: FONT_NUM }}>{fmt(totalBalance.invested)} €</span>
+                  </div>
+                )}
+                <div className="h-px" style={{ background: theme.border }} />
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold" style={{ color: theme.text }}>Disponible ahora</span>
+                  <span style={{ fontWeight: 700, fontFamily: FONT_NUM, color: totalBalance.available >= 0 ? GREEN : RED }}>
+                    {fmt(totalBalance.available)} €
+                  </span>
+                </div>
+              </div>
             </Card>
           )}
         </>

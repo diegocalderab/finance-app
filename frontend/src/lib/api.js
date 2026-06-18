@@ -39,6 +39,8 @@ export const api = {
   transactions: (month, year) => request(`/transactions?month=${month}&year=${year}`),
   summary: (month, year) => request(`/transactions/summary?month=${month}&year=${year}`),
   trend: (months = 6) => request(`/transactions/trend?months=${months}`),
+  balance: () => request("/transactions/balance"),
+  transactionMonths: () => request("/transactions/months"),
   createTransaction: (payload) => request("/transactions", { method: "POST", body: payload }),
   deleteTransaction: (id) => request(`/transactions/${id}`, { method: "DELETE" }),
 

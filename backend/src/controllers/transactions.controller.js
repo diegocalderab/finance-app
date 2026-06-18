@@ -119,4 +119,37 @@ async function availableBalance(req, res, next) {
   }
 }
 
-module.exports = { list, create, remove, summary, trend, availableBalance };
+// Meses distintos que tienen al menos una transacción, ordenados desc.
+async function months(req, res, next) {
+  try {
+    const txs = await prisma.transaction.findMany({
+      where: { accountId: req.accountId },
+      select: { date: true },
+      orderBy: { date: "desc" },
+    });
+
+    const seen = new Set();
+    const result = [];
+    for (const t of txs) {
+      const year = t.date.getFullYear();
+      const month = t.date.getMonth() + 1;
+      const key = `${year}-${String(month).padStart(2, "0")}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const d = new Date(year, month - 1, 1);
+        result.push({
+          year,
+          month,
+          label: d.toLocaleDateString("es-ES", { month: "long" }),
+          short: d.toLocaleDateString("es-ES", { month: "short" }),
+        });
+      }
+    }
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, create, remove, summary, trend, availableBalance, months };
