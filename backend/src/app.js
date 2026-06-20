@@ -11,6 +11,7 @@ const categoriesRoutes = require("./routes/categories.routes");
 const transactionsRoutes = require("./routes/transactions.routes");
 const goalsRoutes = require("./routes/goals.routes");
 const investmentsRoutes = require("./routes/investments.routes");
+const marketRoutes = require("./routes/market.routes");
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/goals", goalsRoutes);
 app.use("/api/investments", investmentsRoutes);
+app.use("/api/market", marketRoutes);
 
 app.use(errorHandler);
 

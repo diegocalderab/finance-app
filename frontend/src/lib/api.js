@@ -51,4 +51,9 @@ export const api = {
 
   investments: () => request("/investments"),
   createInvestment: (payload) => request("/investments", { method: "POST", body: payload }),
+  updateInvestmentPrice: (id, currentPrice) => request(`/investments/${id}/price`, { method: "PATCH", body: { currentPrice } }),
+
+  marketSearch: (q) => request(`/market/search?q=${encodeURIComponent(q)}`),
+  marketQuote: (symbol) => request(`/market/quote/${encodeURIComponent(symbol)}`),
+  marketHistory: (symbol, range = "1y") => request(`/market/history/${encodeURIComponent(symbol)}?range=${range}`),
 };
