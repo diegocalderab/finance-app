@@ -55,12 +55,11 @@ export default function Settings({ theme, dark, setDark, categories, onCategorie
       </Card>
 
       {user && (
-        <Card theme={theme} className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold" style={{ color: theme.text }}>{user.name}</p>
-            <p className="text-xs" style={{ color: theme.sub }}>{user.email}</p>
+        <Card theme={theme} className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate" style={{ color: theme.text }}>{user.name}</p>
+            <p className="text-xs truncate" style={{ color: theme.sub }}>{user.email}</p>
           </div>
-          <button onClick={onLogout} className="text-sm font-semibold" style={{ color: "#FF3B30" }}>Salir</button>
         </Card>
       )}
 
@@ -79,6 +78,12 @@ export default function Settings({ theme, dark, setDark, categories, onCategorie
           {expenseCats.length === 0 && <p className="text-sm p-4" style={{ color: theme.sub }}>Sin categorías</p>}
         </Card>
       </div>
+
+      {onLogout && (
+        <button onClick={onLogout} className="w-full py-3.5 rounded-full text-sm font-semibold" style={{ background: "rgba(255,59,48,0.12)", color: "#FF3B30" }}>
+          Cerrar sesión
+        </button>
+      )}
 
       {!adding ? (
         <button onClick={() => setAdding(true)} className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-semibold" style={{ background: theme.surfaceAlt, color: ACCENT }}>
